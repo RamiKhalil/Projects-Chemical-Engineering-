@@ -73,11 +73,12 @@ while T < (Tc-0.22): # Big while loop(at each pass the temperature is incremente
     check = 1
     pnew = p
 
-    while check > math.exp(-2): # this function does not need a singularity check because it is a continuous cubic function
+    while check > math.exp(-4): # this function does not need a singularity check because it is a continuous cubic function
         A = a*pnew/(R*T)**2
         B = b*pnew/(R*T)
         #=============Cubic equation of state coeffiecients===================#
-        c = [1, -1+B, -3*B**2-2*B, -A*B+B**2+B**3]
+        c = [1, -1+B, A-3*B**2-2*B, -A*B+B**2+B**3]
+        pdb.set_trace()
         #c(1) = 1
         #c(2) = -(1-B)
         #c(3) = A-3*B**2-2*B
@@ -85,24 +86,29 @@ while T < (Tc-0.22): # Big while loop(at each pass the temperature is incremente
         zroots = np.roots(c) #using the built-in function in matlab to the find the roots of eos
         # The following part is used to take the real roots of eos only
         #index = zroots.find(np.imag(zroots)==0)
-        index = np.where(zroots.imag == 0)
-        if len(index)>1:
-            z = zroots[index]
+        ind = np.where(zroots.imag == 0)
+        inde = np.array(ind)
+        index=inde.shape
+        #pdb.set_trace()
+        if index[1]>1:
+            z = zroots[ind]
         else:
-            ztemp = zroots[index].real
+            z = zroots[ind].real
             #lengg=len(ztemp)
             #z = int(ztemp)
-            pdb.set_trace()
-            ztemp = ztemp.astype(np.int64)
-            z = np.asscalar(ztemp)
+            #pdb.set_trace()
+            #z = float(ztemp[0])
+            # z = np.asscalar(ztemp)
             #z = np.take(ztemp,0)
         #taking real roots only ends here
         vliquid = min(z)*R*T/pnew
         vvapor = max(z)*R*T/pnew
-        fugv = pnew * math.exp(max(z) - 1 - math.log10((max(z)-B))-A/(2 * math.sqrt(2)*B)*math.log10(((max(z)+(1+math.sqrt(2))*B)/(max(z)+(1-math.sqrt(2))*B)))) # z(1) is the bigger root
-        fugl = pnew * math.exp(min(z) - 1 - math.log10((min(z)-B))-A/(2 * math.sqrt(2)*B)*math.log10(((min(z)+(1+math.sqrt(2))*B)/(min(z)+(1-math.sqrt(2))*B)))) # z(2)is the smaller root
-        pnew = pnew-R*T*(math.log(fugv/fugl))/(vvapor-vliquid); #newton raphson to find a better estimate of vapor pressure
+        fugv = pnew * math.exp(max(z) - 1 - math.log10((max(z)-B))-A/(2 * math.sqrt(2)*B)*math.log10(((max(z)+(1+math.sqrt(2))*B)/(max(z)+(1-math.sqrt(2))*B))))# z(1) is the bigger root
+        fugl = pnew * math.exp(min(z) - 1 - math.log10((min(z)-B))-A/(2 * math.sqrt(2)*B)*math.log10(((min(z)+(1+math.sqrt(2))*B)/(min(z)+(1-math.sqrt(2))*B))))# z(2)is the smaller root
+        pnew = pnew-R*T*(math.log(fugv/fugl))/(vvapor-vliquid) #newton raphson to find a better estimate of vapor pressure
         check = abs(1-fugv/fugl)
+        print(pnew)
+        pdb.set_trace()
 #The end of the while loop that breaks until fugacities are the same for both phases at each T
 #This is the criteria for equilibrium in thermodynamics
 
@@ -139,47 +145,3 @@ Ps=matrix[:][2]
 hvap=matrix[:][5]
 vvs=matrix[:][3]
 vls=matrix[:][4]
-
-
-
-# Plotting
-fh=figure(1)
-set(fh, 'color','w')
-
-#colordef white
-subplot(2,1,1)
-[ax]=plotyy(Temperature,Ps/1000,Temperature,hvap/1000)
-
-#set(get(ax(1),'Ylabel'),'String','Pressure (kPa)','fontsize',12,'fontangle','oblique','fontweight','bold')
-#set(get(ax(2),'Ylabel'),'String','\Delta H ^v (kJ/mol)','fontsize',12,'fontangle','oblique','fontweight','bold','Rotation',-90,'units','normalized','position',[1.1 0.5])
-
-xlabel('Temperature (K)','fontsize',13,'fontangle','normal','fontweight','bold')
-
-title('Ethanol Vapor Pressure & Enthalpy of Vaporization Vs. Temperature','fontsize',15,'fontangle','normal')
-
-hlegend=legend('Vapor Pressure','Enthalpy of Vaporization');
-
-#set(hlegend,'fontsize',12,'box','off','units','normalized','position',[0.37 0.72 0.001 0.001],'fontangle','normal','orientation','vertical')
-
-#set(ax,'box','off','fontsize',13,'xlim',[150 520],'TickDir','out','XTick',150:(520-150)/10:550,'fontangle','normal');
-
-#grid on
-
-#set(ax(1),'ylim',[0 7e3],'YTick',0:7e3/5:7e3)
-#set(ax(2),'ylim',[0 6e1],'YTick',0:6e1/5:6e1)
-###########################################
-subplot(2,1,2)
-
-semilogx(vls,Ps/1000,vvs,Ps/1000)
-#grid on
-#set(gca,'box','off','TickDir','out','fontsize',13,'ylim',[0 7e3])
-
-title('Pressure Vs. Molar Volume for Ethanol','fontsize',15,'fontangle','normal')
-xlabel('Molar Volume (m^3/mol)','fontsize',13,'fontangle','normal','fontweight','bold')
-ylabel('Pressure (kPa)','fontsize',13,'fontangle','normal','fontweight','bold')
-
-hlegend=legend('liquid','Vapor')
-
-#set(hlegend,'fontsize',13,'box','off','units','normalized','position',[0.53 0.4 0.001 0.001],'fontangle','normal','orientation','horizontal')
-
-#print(figure(1),'-dpng','-r600','picture1')
